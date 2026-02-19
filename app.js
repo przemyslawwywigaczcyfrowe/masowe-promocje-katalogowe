@@ -515,13 +515,13 @@ function renderPreviewListing() {
     const label = document.getElementById('labelText').value || 'Promocja';
     const badge = document.getElementById('badgeType').value;
     const badgeEmojis = { sale: '🔥', promo: '⭐', hot: '💥', last: '⏰' };
-    const isActive = ['active', 'scheduled'].includes(state.campaignStatus);
+    const isPaused = ['paused', 'ended', 'cancelled'].includes(state.campaignStatus);
     const stockMode = document.querySelector('input[name="stockMode"]:checked').value;
 
     document.getElementById('previewCategoryTitle').textContent = label;
 
     const validProducts = state.products.filter(p => {
-        if (!p.valid || p.conflict) return false;
+        if (!p.valid) return false;
         if (stockMode === 'A' && p.dbProduct && p.dbProduct.stock === 0) return false;
         return true;
     });
@@ -531,16 +531,26 @@ function renderPreviewListing() {
         return;
     }
 
-    grid.innerHTML = validProducts.map(p => {
+    // Status banner for preview context
+    let bannerHtml = '';
+    if (isPaused) {
+        bannerHtml = `<div style="grid-column:1/-1;background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:10px 16px;font-size:12px;color:#92400e;margin-bottom:8px;">
+            ⏸️ Kampania ${state.campaignStatus === 'paused' ? 'wstrzymana' : state.campaignStatus === 'ended' ? 'zakończona' : 'anulowana'} — poniżej podgląd jak wyglądały ceny promocyjne
+        </div>`;
+    }
+
+    grid.innerHTML = bannerHtml + validProducts.map(p => {
         const db = p.dbProduct;
         const stockLabel = db.stock > 10 ? `<span class="in-stock">W magazynie (${db.stock} szt.)</span>` :
             db.stock > 0 ? `<span class="low-stock">Ostatnie ${db.stock} szt.</span>` :
             `<span class="no-stock">Brak na stanie</span>`;
 
-        const showPromo = isActive && p.promoPrice > 0;
+        // Podgląd ZAWSZE pokazuje ceny promocyjne (to narzędzie wizualizacji)
+        const showPromo = p.promoPrice !== null && p.promoPrice > 0;
         const available = p.limit !== null ? Math.min(p.limit - p.soldCount, db.stock) : db.stock;
+        const conflictBadge = p.conflict ? `<div style="position:absolute;bottom:8px;left:8px;right:8px;background:#fef2f2;border:1px solid #fca5a5;border-radius:4px;padding:3px 6px;font-size:9px;color:#991b1b;text-align:center;">⚠️ Konflikt: ${p.conflict}</div>` : '';
 
-        return `<div class="product-card" onclick="selectProduct('${p.sku}')">
+        return `<div class="product-card" onclick="selectProduct('${p.sku}')" style="${p.conflict ? 'opacity:0.7;' : ''}">
             ${showPromo ? `<div class="product-card__badge">${badgeEmojis[badge] || '🔥'} ${label}</div>` : ''}
             ${showPromo && p.discountPercent ? `<div class="product-card__discount-badge">-${p.discountPercent}%</div>` : ''}
             <div class="product-card__image">${db.icon}</div>
@@ -558,6 +568,7 @@ function renderPreviewListing() {
                 ${showPromo ? `<div class="product-card__omnibus">Najniższa cena z 30 dni: ${db.omnibus30.toFixed(2)} zł</div>` : ''}
                 <div class="product-card__stock">${stockLabel}${p.limit !== null ? ` · Promocja: ${available} szt.` : ''}</div>
             </div>
+            ${conflictBadge}
         </div>`;
     }).join('');
 }
@@ -584,10 +595,12 @@ function renderPreviewProduct() {
     }
 
     const db = p.dbProduct;
-    const isActive = ['active', 'scheduled'].includes(state.campaignStatus);
-    const showPromo = isActive && p.promoPrice > 0;
+    // Podgląd ZAWSZE pokazuje ceny promo (to narzędzie wizualizacji)
+    const showPromo = p.promoPrice !== null && p.promoPrice > 0;
     const label = document.getElementById('labelText').value || 'Promocja';
     const available = p.limit !== null ? Math.min(p.limit - p.soldCount, db.stock) : db.stock;
+    const promoType = document.getElementById('promoType').value;
+    const promoTypeLabel = { amount: 'Obniżka kwotowa', percent: 'Obniżka procentowa', fixed: 'Fixed Price' }[promoType];
 
     document.getElementById('productUrlSlug').textContent = db.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
 
@@ -607,7 +620,7 @@ function renderPreviewProduct() {
                         <span class="detail-price-promo">${p.promoPrice.toFixed(2)} zł</span>
                         <span class="detail-price-old">${db.erpPrice.toFixed(2)} zł</span>
                     </div>
-                    <div class="detail-savings">Oszczędzasz ${p.discountAmount.toFixed(2)} zł</div>
+                    <div class="detail-savings">Oszczędzasz ${p.discountAmount.toFixed(2)} zł (${promoTypeLabel}: ${p.discountValue}${promoType === 'percent' ? '%' : ' zł'})</div>
                     <div class="detail-omnibus">
                         <strong>Najniższa cena z ostatnich 30 dni przed obniżką:</strong><br>
                         ${db.omnibus30.toFixed(2)} zł
@@ -630,7 +643,7 @@ function renderPreviewProduct() {
             ` : ''}
 
             <div class="detail-add-cart">
-                <input type="number" class="detail-qty" value="1" min="1" max="${db.stock}" id="detailQty">
+                <input type="number" class="detail-qty" value="1" min="1" max="${db.stock || 999}" id="detailQty">
                 <button class="detail-cart-btn" onclick="addToCart('${p.sku}')">🛒 Dodaj do koszyka</button>
             </div>
         </div>
@@ -664,7 +677,6 @@ function addToCart(sku) {
 
 function renderPreviewCart() {
     const container = document.getElementById('cartItems');
-    const isActive = ['active', 'scheduled'].includes(state.campaignStatus);
 
     if (state.cartItems.length === 0 || state.products.length === 0) {
         container.innerHTML = '<div class="preview-empty-state"><p>Dodaj produkty do kampanii i kliknij "Dodaj do koszyka" na karcie produktu</p></div>';
@@ -694,7 +706,8 @@ function renderPreviewCart() {
         if (!p || !p.dbProduct) return;
 
         const db = p.dbProduct;
-        const showPromo = isActive && p.promoPrice > 0;
+        // Podgląd ZAWSZE pokazuje ceny promo
+        const showPromo = p.promoPrice !== null && p.promoPrice > 0;
 
         if (showPromo && p.limit !== null && item.qty > p.limit) {
             // Split order!
@@ -780,43 +793,44 @@ function renderPreviewFeed() {
     const isActive = ['active', 'scheduled'].includes(state.campaignStatus);
     const validProducts = state.products.filter(p => p.valid && p.dbProduct);
 
-    // DataFeedWatch
+    // DataFeedWatch — zawsze pokazuje podgląd z cenami promo
     const dfwEl = document.getElementById('feedDataFeedWatch');
     if (validProducts.length === 0) {
         dfwEl.textContent = '// Dodaj produkty do kampanii';
     } else {
         const items = validProducts.slice(0, 4).map(p => {
             const db = p.dbProduct;
-            const salePrice = isActive ? p.promoPrice : null;
+            const salePrice = (p.promoPrice !== null && p.promoPrice > 0) ? p.promoPrice : null;
             return `  {
     <span class="key">"id"</span>: <span class="str">"${p.sku}"</span>,
     <span class="key">"title"</span>: <span class="str">"${db.name}"</span>,
     <span class="key">"price"</span>: <span class="num">${db.erpPrice.toFixed(2)}</span>,${salePrice ? `
-    <span class="key">"sale_price"</span>: <span class="changed">${salePrice.toFixed(2)}</span>,  <span class="comment">← cena promocyjna</span>` : `
-    <span class="comment">// brak aktywnej promocji</span>`}
+    <span class="key">"sale_price"</span>: <span class="changed">${salePrice.toFixed(2)}</span>,  <span class="comment">← cena promocyjna${!isActive ? ' (po aktywacji)' : ''}</span>` : `
+    <span class="comment">// brak ceny promocyjnej</span>`}
     <span class="key">"availability"</span>: <span class="str">"${db.stock > 0 ? 'in stock' : 'out of stock'}"</span>
   }`;
         }).join(',\n');
-        dfwEl.innerHTML = `<span class="comment">// DataFeedWatch Product Feed</span>\n[\n${items}${validProducts.length > 4 ? `\n  <span class="comment">// ... i ${validProducts.length - 4} więcej produktów</span>` : ''}\n]`;
+        dfwEl.innerHTML = `<span class="comment">// DataFeedWatch Product Feed${!isActive ? ' (podgląd — aktywne po uruchomieniu kampanii)' : ''}</span>\n[\n${items}${validProducts.length > 4 ? `\n  <span class="comment">// ... i ${validProducts.length - 4} więcej produktów</span>` : ''}\n]`;
     }
 
-    // BaseLinker
+    // BaseLinker — zawsze pokazuje podgląd z cenami promo
     const blEl = document.getElementById('feedBaseLinker');
     if (validProducts.length === 0) {
         blEl.textContent = '// Dodaj produkty do kampanii';
     } else {
         const items = validProducts.slice(0, 4).map(p => {
             const db = p.dbProduct;
-            const price = isActive ? p.promoPrice : db.erpPrice;
+            const price = (p.promoPrice !== null && p.promoPrice > 0) ? p.promoPrice : db.erpPrice;
+            const hasPromo = p.promoPrice !== null && p.promoPrice > 0;
             return `  {
     <span class="key">"sku"</span>: <span class="str">"${p.sku}"</span>,
     <span class="key">"name"</span>: <span class="str">"${db.name}"</span>,
-    <span class="key">"price"</span>: <span class="${isActive ? 'changed' : 'num'}">${price.toFixed(2)}</span>,${isActive ? `  <span class="comment">← uwzględnia promocję</span>` : ''}
+    <span class="key">"price"</span>: <span class="${hasPromo ? 'changed' : 'num'}">${price.toFixed(2)}</span>,${hasPromo ? `  <span class="comment">← uwzględnia promocję${!isActive ? ' (po aktywacji)' : ''}</span>` : ''}
     <span class="key">"stock"</span>: <span class="num">${db.stock}</span>,
     <span class="key">"ean"</span>: <span class="str">"590${Math.random().toString().slice(2,12)}"</span>
   }`;
         }).join(',\n');
-        blEl.innerHTML = `<span class="comment">// BaseLinker → Allegro / Marketplace</span>\n[\n${items}${validProducts.length > 4 ? `\n  <span class="comment">// ... i ${validProducts.length - 4} więcej produktów</span>` : ''}\n]`;
+        blEl.innerHTML = `<span class="comment">// BaseLinker → Allegro / Marketplace${!isActive ? ' (podgląd — aktywne po uruchomieniu kampanii)' : ''}</span>\n[\n${items}${validProducts.length > 4 ? `\n  <span class="comment">// ... i ${validProducts.length - 4} więcej produktów</span>` : ''}\n]`;
     }
 
     // Email preview
@@ -828,8 +842,8 @@ function renderPreviewFeed() {
     if (state.campaignStatus === 'active') {
         emailEl.innerHTML = `
             <div class="email-header">
-                <div><strong>Od:</strong> system@sklep.pl</div>
-                <div><strong>Do:</strong> marketing@sklep.pl</div>
+                <div><strong>Od:</strong> system@cyfrowe.pl</div>
+                <div><strong>Do:</strong> marketing@cyfrowe.pl</div>
                 <div><strong>Temat:</strong> ✅ Kampania "${campaignName}" została aktywowana</div>
             </div>
             <div class="email-body">
@@ -841,8 +855,8 @@ function renderPreviewFeed() {
     } else if (state.campaignStatus === 'ended' || state.campaignStatus === 'cancelled') {
         emailEl.innerHTML = `
             <div class="email-header">
-                <div><strong>Od:</strong> system@sklep.pl</div>
-                <div><strong>Do:</strong> marketing@sklep.pl</div>
+                <div><strong>Od:</strong> system@cyfrowe.pl</div>
+                <div><strong>Do:</strong> marketing@cyfrowe.pl</div>
                 <div><strong>Temat:</strong> ${state.campaignStatus === 'ended' ? '🏁' : '❌'} Kampania "${campaignName}" — ${state.campaignStatus === 'ended' ? 'zakończona' : 'anulowana'}</div>
             </div>
             <div class="email-body">
