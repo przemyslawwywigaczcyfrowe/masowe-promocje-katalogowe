@@ -18,10 +18,49 @@
             <span>Masowe Promocje Katalogowe</span>
         </div>
         <div class="top-bar__status">
+            <button class="sim-toggle-btn" id="simToggleBtn" title="Włącz tryb symulatora">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v2H9zM12 5v4M7 9h10l1 12H6L7 9z"/><circle cx="10" cy="15" r="1"/><circle cx="14" cy="13" r="1"/></svg>
+                <span>Symulator</span>
+            </button>
             <span class="status-dot status-dot--draft"></span>
             <span id="campaignStatusText">Szkic</span>
         </div>
     </header>
+
+    <!-- SIMULATOR TOOLBAR (hidden by default) -->
+    <div class="sim-toolbar" id="simToolbar" style="display:none;">
+        <div class="sim-toolbar__section sim-toolbar__time">
+            <span class="sim-toolbar__label">⏱ Czas</span>
+            <button class="sim-btn sim-btn--icon" id="simStepBack" title="Cofnij 1h">⏪</button>
+            <button class="sim-btn sim-btn--play" id="simPlayPause" title="Play / Pauza">▶</button>
+            <button class="sim-btn sim-btn--icon" id="simStepForward" title="Naprzód 1h">⏩</button>
+            <select class="sim-speed-select" id="simSpeed">
+                <option value="60">1min/s</option>
+                <option value="600">10min/s</option>
+                <option value="3600" selected>1h/s</option>
+                <option value="86400">1d/s</option>
+            </select>
+            <input type="datetime-local" class="sim-datetime" id="simDateTime" step="60">
+            <span class="sim-toolbar__clock" id="simClockDisplay">--:--</span>
+        </div>
+        <div class="sim-toolbar__section sim-toolbar__timeline">
+            <input type="range" class="sim-timeline-slider" id="simTimelineSlider" min="0" max="1000" value="0" step="1">
+        </div>
+        <div class="sim-toolbar__section sim-toolbar__actions">
+            <select class="sim-scenario-select" id="simScenarioPreset">
+                <option value="">— Szybki scenariusz —</option>
+                <option value="before_start">🕐 Przed startem kampanii</option>
+                <option value="mid_campaign">▶️ W trakcie kampanii</option>
+                <option value="normal_purchase">🛒 Normalny zakup</option>
+                <option value="over_limit">⚠️ Przekroczenie limitu</option>
+                <option value="stock_depleted">📦 Wyczerpanie stanu</option>
+                <option value="campaign_expired">🏁 Kampania wygasła</option>
+                <option value="sku_conflict">❌ Konflikt SKU</option>
+            </select>
+            <button class="sim-btn" id="simReset" title="Resetuj symulację">↺ Reset</button>
+            <button class="sim-btn sim-btn--export" id="simExportReport" title="Eksportuj raport">📋 Raport</button>
+        </div>
+    </div>
 
     <main class="split-view">
         <!-- LEFT PANEL: Campaign Configuration -->
@@ -205,6 +244,22 @@
                     </div>
                 </section>
 
+                <!-- Stock Simulation (shown only when simulator is active) -->
+                <section class="config-section" id="sectionStockSim" style="display:none;">
+                    <h3 class="config-section__title" data-toggle="stockSimBody">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                        Symulacja stanów magazynowych
+                        <span class="chevron">&#9662;</span>
+                    </h3>
+                    <div class="config-section__body" id="stockSimBody">
+                        <div id="stockSimProducts"></div>
+                        <div style="display:flex;gap:8px;margin-top:12px;">
+                            <button class="btn btn--danger btn--sm" id="stockDepletAllBtn">Wyczerp wszystko</button>
+                            <button class="btn btn--outline btn--sm" id="stockResetBtn">Przywróć oryginalne</button>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- Campaign Actions -->
                 <section class="config-section">
                     <h3 class="config-section__title" data-toggle="actionsBody">
@@ -252,6 +307,8 @@
                     <button class="preview-tab" data-preview="product">Karta produktu</button>
                     <button class="preview-tab" data-preview="cart">Koszyk</button>
                     <button class="preview-tab" data-preview="feed">Feed / Integracje</button>
+                    <button class="preview-tab sim-only-tab" data-preview="simlog" style="display:none;">Dziennik zdarzeń</button>
+                    <button class="preview-tab sim-only-tab" data-preview="compare" style="display:none;">Porównanie typów</button>
                 </div>
             </div>
             <div class="panel__body preview-body">
@@ -314,6 +371,42 @@
                     </div>
                 </div>
 
+                <!-- Event Log Preview (simulator) -->
+                <div class="preview-content" id="preview-simlog">
+                    <div class="preview-browser">
+                        <div class="browser-bar">
+                            <div class="browser-dots"><span></span><span></span><span></span></div>
+                            <div class="browser-url">Symulator — Dziennik zdarzeń</div>
+                        </div>
+                        <div class="browser-content">
+                            <div class="sim-log-view">
+                                <div class="sim-log-header">
+                                    <h4>Dziennik zdarzeń symulacji</h4>
+                                    <button class="btn btn--sm btn--outline" id="clearEventLog">Wyczyść</button>
+                                </div>
+                                <div class="sim-log-entries" id="simLogEntries">
+                                    <div class="preview-empty-state"><p>Włącz symulator i wykonaj akcje, aby zobaczyć dziennik zdarzeń</p></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Promo Type Comparison (simulator) -->
+                <div class="preview-content" id="preview-compare">
+                    <div class="preview-browser">
+                        <div class="browser-bar">
+                            <div class="browser-dots"><span></span><span></span><span></span></div>
+                            <div class="browser-url">Symulator — Porównanie typów promocji</div>
+                        </div>
+                        <div class="browser-content">
+                            <div id="promoComparisonView">
+                                <div class="preview-empty-state"><p>Dodaj produkty aby porównać typy promocji</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Feed Preview -->
                 <div class="preview-content" id="preview-feed">
                     <div class="preview-browser">
@@ -350,5 +443,6 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <script src="app.js"></script>
+    <script src="simulator.js"></script>
 </body>
 </html>

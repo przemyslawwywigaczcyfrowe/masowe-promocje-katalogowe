@@ -124,7 +124,28 @@ const state = {
     products: [],
     selectedProductSku: null,
     cartItems: [],
+    // Simulator state
+    sim: {
+        enabled: false,
+        currentTime: null,
+        speed: 1,
+        isPlaying: false,
+        intervalId: null,
+        stockOverrides: {},
+        eventLog: [],
+        initialSnapshot: null,
+    },
 };
+
+// ===== ABSTRACTION LAYER (for simulator) =====
+function getSimTime() {
+    return state.sim.enabled && state.sim.currentTime ? new Date(state.sim.currentTime) : new Date();
+}
+
+function getEffectiveStock(sku) {
+    if (state.sim.stockOverrides.hasOwnProperty(sku)) return state.sim.stockOverrides[sku];
+    return PRODUCT_DATABASE[sku] ? PRODUCT_DATABASE[sku].stock : 0;
+}
 
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
@@ -315,10 +336,24 @@ function initCampaignActions() {
     document.getElementById('cancelBtn').addEventListener('click', () => { setCampaignStatus('cancelled'); showToast('Kampania anulowana.', 'error'); });
 }
 
-function setCampaignStatus(status) { state.campaignStatus = status; renderAll(); }
+function setCampaignStatus(status, source = 'manual') {
+    const prev = state.campaignStatus;
+    state.campaignStatus = status;
+    if (state.sim.enabled && prev !== status && typeof logEvent === 'function') {
+        const labels = { draft:'Szkic', scheduled:'Zaplanowana', active:'Aktywna', paused:'Wstrzymana', ended:'Zakończona', cancelled:'Anulowana' };
+        logEvent('status', `${labels[prev] || prev} → ${labels[status] || status} (${source === 'auto' ? 'automatycznie' : 'ręcznie'})`);
+    }
+    renderAll();
+}
 
 // ===== RENDER ALL =====
-function renderAll() { renderProductTable(); renderValidations(); renderLifecycle(); renderPreviewListing(); renderPreviewProduct(); renderPreviewCart(); renderPreviewFeed(); updateStatusBar(); updateProductCount(); }
+function renderAll() {
+    renderProductTable(); renderValidations(); renderLifecycle();
+    renderPreviewListing(); renderPreviewProduct(); renderPreviewCart(); renderPreviewFeed();
+    updateStatusBar(); updateProductCount();
+    // Simulator-specific renders
+    if (state.sim.enabled && typeof renderSimPanels === 'function') renderSimPanels();
+}
 
 function updateStatusBar() {
     const m = { draft:['Szkic','draft'], scheduled:['Zaplanowana','scheduled'], active:['Aktywna','active'], paused:['Wstrzymana','paused'], ended:['Zakończona','ended'], cancelled:['Anulowana','cancelled'] };
@@ -339,7 +374,7 @@ function renderProductTable() {
         let st = '';
         if (!p.valid) st = '<span class="sku-status sku-status--error">Nie znaleziono</span>';
         else if (p.conflict) st = `<span class="sku-status sku-status--error" title="Konflikt: ${p.conflict}">Konflikt</span>`;
-        else if (p.dbProduct?.stock === 0) st = '<span class="sku-status sku-status--warn">Brak stanu</span>';
+        else if (getEffectiveStock(p.sku) === 0) st = '<span class="sku-status sku-status--warn">Brak stanu</span>';
         else if (p.promoPrice !== null && p.promoPrice <= 0) st = '<span class="sku-status sku-status--error">Cena ≤ 0</span>';
         else st = '<span class="sku-status sku-status--ok">OK</span>';
         return `<tr class="${p.conflict ? 'conflict' : ''}">
@@ -361,7 +396,7 @@ function renderValidations() {
     if (state.products.length === 0) { items.push({ type:'info', icon:'ℹ️', text:'Dodaj produkty aby uruchomić walidacje' }); }
     else {
         const invalid = state.products.filter(p => !p.valid), conflicts = state.products.filter(p => p.conflict);
-        const zeroStock = state.products.filter(p => p.dbProduct?.stock === 0), negPrice = state.products.filter(p => p.promoPrice !== null && p.promoPrice <= 0);
+        const zeroStock = state.products.filter(p => p.valid && getEffectiveStock(p.sku) === 0), negPrice = state.products.filter(p => p.promoPrice !== null && p.promoPrice <= 0);
         const valid = state.products.filter(p => p.valid && !p.conflict && (p.promoPrice === null || p.promoPrice > 0));
         if (valid.length === state.products.length) items.push({ type:'ok', icon:'✅', text:`Wszystkie ${state.products.length} produktów przeszło walidację` });
         if (invalid.length) items.push({ type:'error', icon:'❌', text:`${invalid.length} SKU nie znaleziono: ${invalid.map(p=>p.sku).join(', ')}` });
@@ -406,16 +441,17 @@ function renderPreviewListing() {
 
     document.getElementById('previewCategoryTitle').textContent = label;
 
-    const validProducts = state.products.filter(p => { if (!p.valid) return false; if (stockMode === 'A' && p.dbProduct?.stock === 0) return false; return true; });
+    const validProducts = state.products.filter(p => { if (!p.valid) return false; if (stockMode === 'A' && getEffectiveStock(p.sku) === 0) return false; return true; });
     if (validProducts.length === 0) { grid.innerHTML = '<div class="preview-empty-state"><p>Dodaj produkty do kampanii, aby zobaczyć podgląd</p></div>'; return; }
 
     let banner = isPaused ? `<div style="grid-column:1/-1;background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:10px 16px;font-size:12px;color:#92400e;margin-bottom:8px;">⏸️ Kampania ${state.campaignStatus === 'paused' ? 'wstrzymana' : state.campaignStatus === 'ended' ? 'zakończona' : 'anulowana'} — poniżej podgląd jak wyglądały ceny promocyjne</div>` : '';
 
     grid.innerHTML = banner + validProducts.map(p => {
         const db = p.dbProduct;
-        const stockLabel = db.stock > 5 ? `<span class="in-stock">W magazynie (${db.stock})</span>` : db.stock > 0 ? `<span class="low-stock">Ostatnie ${db.stock} szt.</span>` : `<span class="no-stock">Brak</span>`;
+        const stk = getEffectiveStock(p.sku);
+        const stockLabel = stk > 5 ? `<span class="in-stock">W magazynie (${stk})</span>` : stk > 0 ? `<span class="low-stock">Ostatnie ${stk} szt.</span>` : `<span class="no-stock">Brak</span>`;
         const showPromo = p.promoPrice !== null && p.promoPrice > 0;
-        const available = p.limit !== null ? Math.min(p.limit - p.soldCount, db.stock) : db.stock;
+        const available = p.limit !== null ? Math.min(p.limit - p.soldCount, stk) : stk;
         const conflict = p.conflict ? `<div style="position:absolute;bottom:8px;left:8px;right:8px;background:#fef2f2;border:1px solid #fca5a5;border-radius:4px;padding:3px 6px;font-size:9px;color:#991b1b;text-align:center;">⚠️ Konflikt: ${p.conflict}</div>` : '';
 
         return `<div class="product-card" onclick="selectProduct('${p.sku}')" style="${p.conflict ? 'opacity:0.7;' : ''}">
@@ -474,9 +510,9 @@ function renderPreviewProduct() {
                     <div class="detail-omnibus"><strong>Najniższa cena z ostatnich 30 dni przed obniżką:</strong><br>${db.omnibus30.toFixed(2)} zł<br><span style="font-size:10px;color:#9ca3af;">(Dyrektywa Omnibus UE 2019/2161)</span></div>
                 </div>
             ` : `<div style="font-size:28px;font-weight:700;margin-bottom:16px;">${db.erpPrice.toFixed(2)} zł</div>`}
-            <div class="detail-stock">Dostępność: ${db.stock > 0 ? `<span style="color:var(--success);font-weight:600;">${db.stock} szt. w magazynie</span>` : '<span style="color:var(--danger);font-weight:600;">Brak na stanie</span>'}</div>
-            ${showPromo && p.limit !== null ? `<div class="detail-limit-info">⚠️ Maks. ilość w cenie promocyjnej: <strong>${p.limit} szt.</strong>${p.limit < db.stock ? '<br>Większe ilości — cena regularna.' : ''}</div>` : ''}
-            <div class="detail-add-cart"><input type="number" class="detail-qty" value="1" min="1" max="${db.stock||999}" id="detailQty"><button class="detail-cart-btn" onclick="addToCart('${p.sku}')">🛒 Dodaj do koszyka</button></div>
+            <div class="detail-stock">Dostępność: ${getEffectiveStock(p.sku) > 0 ? `<span style="color:var(--success);font-weight:600;">${getEffectiveStock(p.sku)} szt. w magazynie</span>` : '<span style="color:var(--danger);font-weight:600;">Brak na stanie</span>'}</div>
+            ${showPromo && p.limit !== null ? `<div class="detail-limit-info">⚠️ Maks. ilość w cenie promocyjnej: <strong>${p.limit} szt.</strong>${p.limit < getEffectiveStock(p.sku) ? '<br>Większe ilości — cena regularna.' : ''}</div>` : ''}
+            <div class="detail-add-cart"><input type="number" class="detail-qty" value="1" min="1" max="${getEffectiveStock(p.sku)||999}" id="detailQty"><button class="detail-cart-btn" onclick="addToCart('${p.sku}')">🛒 Dodaj do koszyka</button></div>
         </div>`;
 }
 
@@ -486,6 +522,20 @@ function addToCart(sku) {
     const qty = parseInt(document.getElementById('detailQty')?.value || 1) || 1;
     const existing = state.cartItems.find(c => c.sku === sku);
     if (existing) existing.qty += qty; else state.cartItems.push({ sku, qty });
+    // Simulator: track stock changes and purchases
+    if (state.sim.enabled) {
+        const promoQty = (p.promoPrice > 0 && p.limit !== null) ? Math.min(qty, p.limit - p.soldCount) : qty;
+        if (promoQty > 0) p.soldCount += Math.max(0, promoQty);
+        const curStock = getEffectiveStock(sku);
+        state.sim.stockOverrides[sku] = Math.max(0, curStock - qty);
+        if (typeof logEvent === 'function') {
+            logEvent('purchase', `Dodano ${qty}× ${p.dbProduct.name} do koszyka (stan: ${curStock} → ${getEffectiveStock(sku)})`);
+            if (getEffectiveStock(sku) === 0) {
+                const stockMode = document.querySelector('input[name="stockMode"]:checked').value;
+                logEvent('stock', `Stan ${p.sku} = 0. ${stockMode === 'A' ? 'Produkt wypadnie z promocji (Tryb A).' : 'Promocja trwa dalej (Tryb B).'}`);
+            }
+        }
+    }
     showToast(`Dodano ${qty}× ${p.dbProduct.name}`, 'success');
     document.querySelectorAll('.preview-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.preview-content').forEach(c => c.classList.remove('active'));
@@ -629,7 +679,7 @@ function renderPreviewFeed() {
     if (validProducts.length === 0) { dfwEl.textContent = '// Dodaj produkty'; } else {
         const items = validProducts.slice(0,4).map(p => {
             const db = p.dbProduct, sp = (p.promoPrice > 0) ? p.promoPrice : null;
-            return `  {\n    <span class="key">"id"</span>: <span class="str">"${p.sku}"</span>,\n    <span class="key">"title"</span>: <span class="str">"${db.name}"</span>,\n    <span class="key">"price"</span>: <span class="num">${db.erpPrice.toFixed(2)}</span>,${sp ? `\n    <span class="key">"sale_price"</span>: <span class="changed">${sp.toFixed(2)}</span>,  <span class="comment">← promo${!isActive?' (po aktywacji)':''}</span>` : ''}\n    <span class="key">"availability"</span>: <span class="str">"${db.stock>0?'in stock':'out of stock'}"</span>\n  }`;
+            return `  {\n    <span class="key">"id"</span>: <span class="str">"${p.sku}"</span>,\n    <span class="key">"title"</span>: <span class="str">"${db.name}"</span>,\n    <span class="key">"price"</span>: <span class="num">${db.erpPrice.toFixed(2)}</span>,${sp ? `\n    <span class="key">"sale_price"</span>: <span class="changed">${sp.toFixed(2)}</span>,  <span class="comment">← promo${!isActive?' (po aktywacji)':''}</span>` : ''}\n    <span class="key">"availability"</span>: <span class="str">"${getEffectiveStock(p.sku)>0?'in stock':'out of stock'}"</span>\n  }`;
         }).join(',\n');
         dfwEl.innerHTML = `<span class="comment">// DataFeedWatch Feed${!isActive?' (podgląd)':''}</span>\n[\n${items}${validProducts.length>4?`\n  <span class="comment">// +${validProducts.length-4} więcej</span>`:''}\n]`;
     }
@@ -638,7 +688,7 @@ function renderPreviewFeed() {
     if (validProducts.length === 0) { blEl.textContent = '// Dodaj produkty'; } else {
         const items = validProducts.slice(0,4).map(p => {
             const db = p.dbProduct, price = (p.promoPrice > 0) ? p.promoPrice : db.erpPrice, hp = p.promoPrice > 0;
-            return `  {\n    <span class="key">"sku"</span>: <span class="str">"${p.sku}"</span>,\n    <span class="key">"name"</span>: <span class="str">"${db.name}"</span>,\n    <span class="key">"price"</span>: <span class="${hp?'changed':'num'}">${price.toFixed(2)}</span>,${hp?`  <span class="comment">← promo${!isActive?' (po aktywacji)':''}</span>`:''}\n    <span class="key">"stock"</span>: <span class="num">${db.stock}</span>\n  }`;
+            return `  {\n    <span class="key">"sku"</span>: <span class="str">"${p.sku}"</span>,\n    <span class="key">"name"</span>: <span class="str">"${db.name}"</span>,\n    <span class="key">"price"</span>: <span class="${hp?'changed':'num'}">${price.toFixed(2)}</span>,${hp?`  <span class="comment">← promo${!isActive?' (po aktywacji)':''}</span>`:''}\n    <span class="key">"stock"</span>: <span class="num">${getEffectiveStock(p.sku)}</span>\n  }`;
         }).join(',\n');
         blEl.innerHTML = `<span class="comment">// BaseLinker → Allegro${!isActive?' (podgląd)':''}</span>\n[\n${items}${validProducts.length>4?`\n  <span class="comment">// +${validProducts.length-4} więcej</span>`:''}\n]`;
     }

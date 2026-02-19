@@ -1024,6 +1024,204 @@ textarea { resize: vertical; }
     grid-column: 1 / -1;
 }
 
+/* ===== SIMULATOR TOOLBAR ===== */
+.sim-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 20px;
+    background: linear-gradient(135deg, #312e81, #4338ca);
+    color: #fff;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    border-bottom: 2px solid #6366f1;
+    z-index: 99;
+    font-size: 12px;
+}
+.sim-toolbar__section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.sim-toolbar__label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    font-weight: 600;
+    opacity: 0.7;
+    margin-right: 4px;
+}
+.sim-toolbar__clock {
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    background: rgba(255,255,255,.15);
+    padding: 4px 10px;
+    border-radius: 6px;
+    min-width: 100px;
+    text-align: center;
+}
+.sim-toolbar__timeline { flex: 1; min-width: 140px; }
+
+.sim-btn {
+    padding: 4px 12px;
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: 6px;
+    background: rgba(255,255,255,.1);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition);
+    font-family: var(--font);
+    white-space: nowrap;
+}
+.sim-btn:hover { background: rgba(255,255,255,.25); }
+.sim-btn--play {
+    background: #22c55e; border-color: #22c55e;
+    padding: 4px 14px; font-weight: 700;
+}
+.sim-btn--play:hover { background: #16a34a; }
+.sim-btn--play.playing {
+    background: #f59e0b; border-color: #f59e0b;
+}
+.sim-btn--icon { padding: 4px 8px; font-size: 13px; }
+.sim-btn--export { background: rgba(255,255,255,.15); }
+
+.sim-toggle-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 20px;
+    border: 1px solid rgba(255,255,255,.3);
+    background: transparent; color: #a5b4c8;
+    font-size: 12px; font-weight: 500; cursor: pointer;
+    font-family: var(--font); transition: all var(--transition);
+    margin-right: 12px;
+}
+.sim-toggle-btn:hover { background: rgba(255,255,255,.1); color: #fff; }
+.sim-toggle-btn.active {
+    background: #4f46e5; color: #fff; border-color: #6366f1;
+    box-shadow: 0 0 8px rgba(99,102,241,.5);
+}
+
+.sim-datetime {
+    padding: 4px 8px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,.3);
+    background: rgba(255,255,255,.1);
+    color: #fff; font-size: 11px;
+    font-family: var(--font);
+    color-scheme: dark;
+}
+.sim-speed-select {
+    padding: 4px 8px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,.3);
+    background: rgba(255,255,255,.15);
+    color: #fff; font-size: 11px;
+    font-family: var(--font);
+}
+.sim-speed-select option { background: #312e81; color: #fff; }
+.sim-scenario-select {
+    padding: 4px 10px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,.3);
+    background: rgba(255,255,255,.1);
+    color: #fff; font-size: 11px;
+    font-family: var(--font);
+    max-width: 220px;
+}
+.sim-scenario-select option { background: #312e81; color: #fff; }
+
+/* Timeline slider */
+.sim-timeline-slider {
+    -webkit-appearance: none; width: 100%; height: 6px;
+    border-radius: 3px;
+    background: rgba(255,255,255,.2);
+    outline: none;
+}
+.sim-timeline-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px;
+    border-radius: 50%; background: #fff;
+    cursor: pointer; box-shadow: 0 0 4px rgba(0,0,0,.3);
+}
+.sim-timeline-slider::-moz-range-thumb {
+    width: 16px; height: 16px;
+    border-radius: 50%; background: #fff;
+    cursor: pointer; border: none;
+}
+
+/* ===== STOCK SIMULATION PANEL ===== */
+.stock-sim-product {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 0; border-bottom: 1px solid var(--border-light);
+    font-size: 12px;
+}
+.stock-sim-product__name {
+    flex: 1; min-width: 0; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+    font-size: 11px;
+}
+.stock-sim-product__slider {
+    width: 80px; height: 4px; -webkit-appearance: none;
+    background: var(--border); border-radius: 2px; outline: none;
+}
+.stock-sim-product__slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 12px; height: 12px;
+    border-radius: 50%; background: var(--primary); cursor: pointer;
+}
+.stock-sim-product__value {
+    width: 28px; text-align: right; font-weight: 600;
+    font-family: 'Fira Code', monospace; font-size: 11px;
+}
+.stock-sim-product__value--zero { color: var(--danger); }
+
+/* ===== EVENT LOG ===== */
+.sim-log-view { padding: 0; }
+.sim-log-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+}
+.sim-log-header h4 { font-size: 14px; font-weight: 600; margin: 0; }
+.sim-log-entries { max-height: 500px; overflow-y: auto; }
+.sim-log-entry {
+    display: flex; gap: 10px; padding: 8px 16px;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 12px; align-items: flex-start;
+}
+.sim-log-entry:hover { background: var(--surface-hover); }
+.sim-log-entry__time {
+    font-family: 'Fira Code', monospace; font-size: 10px;
+    color: var(--text-muted); white-space: nowrap; min-width: 120px;
+}
+.sim-log-entry__badge {
+    padding: 1px 8px; border-radius: 10px;
+    font-size: 9px; font-weight: 600;
+    text-transform: uppercase; white-space: nowrap;
+    flex-shrink: 0;
+}
+.sim-log-entry__badge--status { background: var(--info-light); color: var(--info); }
+.sim-log-entry__badge--stock { background: var(--warning-light); color: var(--warning); }
+.sim-log-entry__badge--purchase { background: var(--success-light); color: var(--success); }
+.sim-log-entry__badge--price { background: #f5f3ff; color: #7c3aed; }
+.sim-log-entry__badge--system { background: var(--bg); color: var(--text-secondary); }
+.sim-log-entry__badge--scenario { background: #fdf4ff; color: #a855f7; }
+.sim-log-entry__message { flex: 1; line-height: 1.4; }
+
+/* ===== PROMO COMPARISON TABLE ===== */
+.promo-comparison-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.promo-comparison-table th {
+    padding: 10px 12px; text-align: left;
+    background: var(--bg); font-weight: 600;
+    font-size: 10px; text-transform: uppercase;
+    letter-spacing: .03em; border-bottom: 2px solid var(--border);
+}
+.promo-comparison-table td {
+    padding: 8px 12px; border-bottom: 1px solid var(--border-light);
+    vertical-align: top;
+}
+.promo-comparison-table tr:hover td { background: var(--surface-hover); }
+.promo-comparison-table .active-type {
+    background: var(--primary-light) !important; font-weight: 600;
+}
+.promo-comparison-table .best-price { color: var(--success); font-weight: 700; }
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 900px) {
     .split-view {
@@ -1050,4 +1248,12 @@ textarea { resize: vertical; }
     .product-detail {
         grid-template-columns: 1fr;
     }
+    .sim-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding: 10px 16px;
+    }
+    .sim-toolbar__timeline { min-width: unset; }
+    .sim-toolbar__actions { flex-wrap: wrap; }
 }
