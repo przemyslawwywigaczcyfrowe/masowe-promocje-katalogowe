@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masowe Promocje Katalogowe - Prototyp</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="top-bar">
+        <div class="top-bar__logo">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
+                <line x1="7" y1="7" x2="7.01" y2="7"/>
+            </svg>
+            <span>Masowe Promocje Katalogowe</span>
+        </div>
+        <div class="top-bar__status">
+            <span class="status-dot status-dot--draft"></span>
+            <span id="campaignStatusText">Szkic</span>
+        </div>
+    </header>
+
+    <main class="split-view">
+        <!-- LEFT PANEL: Campaign Configuration -->
+        <aside class="panel panel--config" id="configPanel">
+            <div class="panel__header">
+                <h2>Konfiguracja kampanii</h2>
+            </div>
+            <div class="panel__body">
+                <!-- Campaign Settings -->
+                <section class="config-section" id="sectionSettings">
+                    <h3 class="config-section__title" data-toggle="settingsBody">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                        Ustawienia globalne
+                        <span class="chevron">&#9662;</span>
+                    </h3>
+                    <div class="config-section__body" id="settingsBody">
+                        <div class="form-group">
+                            <label for="campaignName">Nazwa kampanii <span class="required">*</span></label>
+                            <input type="text" id="campaignName" placeholder="np. Wietrzenie Magazynu Luty 2026" value="Wietrzenie Magazynu Luty 2026">
+                        </div>
+                        <div class="form-group">
+                            <label for="campaignShortName">Skrócona nazwa</label>
+                            <input type="text" id="campaignShortName" placeholder="opcjonalna" value="Luty -50">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="startDate">Data startu <span class="required">*</span></label>
+                                <input type="datetime-local" id="startDate" value="2026-02-20T08:00">
+                            </div>
+                            <div class="form-group">
+                                <label for="endDate">Data końca <span class="required">*</span></label>
+                                <input type="datetime-local" id="endDate" value="2026-03-10T23:59">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="promoType">Typ promocji <span class="required">*</span></label>
+                            <select id="promoType">
+                                <option value="amount" selected>Obniżka kwotowa (V1)</option>
+                                <option value="percent">Obniżka procentowa (V2)</option>
+                                <option value="fixed">Fixed Price (V2)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="stockMode">Zachowanie przy stock = 0</label>
+                            <div class="radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="stockMode" value="A" checked>
+                                    <span class="radio-custom"></span>
+                                    <span><strong>Tryb A</strong> — produkt wypada z promocji</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="stockMode" value="B">
+                                    <span class="radio-custom"></span>
+                                    <span><strong>Tryb B</strong> — promocja trwa niezależnie od stanu</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="labelText">Label</label>
+                                <input type="text" id="labelText" placeholder="np. Promocja" value="Wyprzedaż">
+                            </div>
+                            <div class="form-group">
+                                <label for="badgeType">Badge</label>
+                                <select id="badgeType">
+                                    <option value="sale">🔥 Wyprzedaż</option>
+                                    <option value="promo">⭐ Promocja</option>
+                                    <option value="hot">💥 Super Cena</option>
+                                    <option value="last">⏰ Ostatnie Sztuki</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="landingPageUrl">Link do Landing Page</label>
+                            <input type="url" id="landingPageUrl" placeholder="https://sklep.pl/wyprzedaz">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Product List -->
+                <section class="config-section" id="sectionProducts">
+                    <h3 class="config-section__title" data-toggle="productsBody">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                        Produkty w kampanii
+                        <span class="badge-count" id="productCount">0</span>
+                        <span class="chevron">&#9662;</span>
+                    </h3>
+                    <div class="config-section__body" id="productsBody">
+                        <!-- Input method tabs -->
+                        <div class="input-tabs">
+                            <button class="input-tab active" data-tab="manual">Ręcznie</button>
+                            <button class="input-tab" data-tab="csv">Import CSV</button>
+                            <button class="input-tab" data-tab="paste">Wklej tekst</button>
+                        </div>
+
+                        <div class="tab-content active" id="tab-manual">
+                            <div class="manual-entry">
+                                <div class="form-row form-row--3col">
+                                    <div class="form-group">
+                                        <label>Indeks SKU</label>
+                                        <input type="text" id="manualSku" placeholder="SKU-001">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Wartość</label>
+                                        <input type="number" id="manualValue" placeholder="50" step="0.01">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Limit szt.</label>
+                                        <input type="number" id="manualLimit" placeholder="∞">
+                                    </div>
+                                </div>
+                                <button class="btn btn--secondary btn--sm" id="addManualBtn">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                    Dodaj produkt
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="tab-content" id="tab-csv">
+                            <div class="file-upload" id="csvDropZone">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                <p>Przeciągnij plik CSV lub <button class="link-btn" id="csvBrowseBtn">wybierz plik</button></p>
+                                <input type="file" id="csvFileInput" accept=".csv,.txt" hidden>
+                                <span class="hint">Format: SKU;Wartość;Limit (2 lub 3 kolumny)</span>
+                            </div>
+                        </div>
+
+                        <div class="tab-content" id="tab-paste">
+                            <div class="form-group">
+                                <label>Wklej dane (format CSV)</label>
+                                <textarea id="pasteInput" rows="5" placeholder="SKU-001;50;100&#10;SKU-002;30&#10;SKU-003;45;200"></textarea>
+                            </div>
+                            <button class="btn btn--secondary btn--sm" id="parsePasteBtn">Przetwórz dane</button>
+                        </div>
+
+                        <!-- Product table -->
+                        <div class="product-table-wrap" id="productTableWrap">
+                            <table class="product-table" id="productTable">
+                                <thead>
+                                    <tr>
+                                        <th>SKU</th>
+                                        <th>Nazwa</th>
+                                        <th class="text-right">Cena ERP</th>
+                                        <th class="text-right">Rabat</th>
+                                        <th class="text-right">Cena promo</th>
+                                        <th class="text-right">Limit</th>
+                                        <th>Status</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="productTableBody">
+                                </tbody>
+                            </table>
+                            <div class="empty-state" id="emptyProducts">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+                                <p>Brak produktów. Dodaj produkty ręcznie, importując CSV lub wklejając dane.</p>
+                            </div>
+                        </div>
+
+                        <div class="bulk-actions" id="bulkActions" style="display:none;">
+                            <button class="btn btn--outline btn--sm" id="loadSampleBtn">Załaduj dane przykładowe</button>
+                            <button class="btn btn--danger btn--sm" id="clearAllBtn">Wyczyść wszystko</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Validations -->
+                <section class="config-section" id="sectionValidations">
+                    <h3 class="config-section__title" data-toggle="validationsBody">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        Walidacje i Omnibus
+                        <span class="chevron">&#9662;</span>
+                    </h3>
+                    <div class="config-section__body collapsed" id="validationsBody">
+                        <div class="validation-list" id="validationList">
+                            <div class="validation-item validation-item--info">
+                                <span class="validation-icon">ℹ️</span>
+                                <span>Dodaj produkty aby uruchomić walidacje</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Campaign Actions -->
+                <section class="config-section">
+                    <h3 class="config-section__title" data-toggle="actionsBody">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        Cykl życia kampanii
+                        <span class="chevron">&#9662;</span>
+                    </h3>
+                    <div class="config-section__body" id="actionsBody">
+                        <div class="lifecycle-diagram">
+                            <div class="lifecycle-node active" data-state="draft">Szkic</div>
+                            <div class="lifecycle-arrow">→</div>
+                            <div class="lifecycle-node" data-state="scheduled">Zaplanowana</div>
+                            <div class="lifecycle-arrow">→</div>
+                            <div class="lifecycle-node" data-state="active">Aktywna</div>
+                            <div class="lifecycle-arrow">→</div>
+                            <div class="lifecycle-node" data-state="ended">Zakończona</div>
+                        </div>
+                        <div class="lifecycle-extras">
+                            <div class="lifecycle-node lifecycle-node--secondary" data-state="paused">Wstrzymana</div>
+                            <div class="lifecycle-node lifecycle-node--danger" data-state="cancelled">Anulowana</div>
+                        </div>
+                        <div class="campaign-actions">
+                            <button class="btn btn--primary" id="publishBtn">Zaplanuj kampanię</button>
+                            <button class="btn btn--warning" id="activateBtn" style="display:none;">Aktywuj teraz</button>
+                            <button class="btn btn--secondary" id="pauseBtn" style="display:none;">Wstrzymaj</button>
+                            <button class="btn btn--outline" id="resumeBtn" style="display:none;">Wznów</button>
+                            <button class="btn btn--danger-outline" id="cancelBtn">Anuluj</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </aside>
+
+        <!-- Resize Handle -->
+        <div class="split-handle" id="splitHandle">
+            <div class="split-handle__grip"></div>
+        </div>
+
+        <!-- RIGHT PANEL: Live Preview -->
+        <section class="panel panel--preview" id="previewPanel">
+            <div class="panel__header">
+                <h2>Podgląd na żywo</h2>
+                <div class="preview-tabs">
+                    <button class="preview-tab active" data-preview="listing">Listing kategorii</button>
+                    <button class="preview-tab" data-preview="product">Karta produktu</button>
+                    <button class="preview-tab" data-preview="cart">Koszyk</button>
+                    <button class="preview-tab" data-preview="feed">Feed / Integracje</button>
+                </div>
+            </div>
+            <div class="panel__body preview-body">
+                <!-- Listing Preview -->
+                <div class="preview-content active" id="preview-listing">
+                    <div class="preview-browser">
+                        <div class="browser-bar">
+                            <div class="browser-dots"><span></span><span></span><span></span></div>
+                            <div class="browser-url">sklep.pl/kategoria/wyprzedaz</div>
+                        </div>
+                        <div class="browser-content">
+                            <div class="shop-header">
+                                <div class="shop-breadcrumb">Strona główna / Wyprzedaż</div>
+                                <h2 class="shop-category-title" id="previewCategoryTitle">Wyprzedaż</h2>
+                                <p class="shop-category-desc">Produkty objęte kampanią promocyjną</p>
+                            </div>
+                            <div class="product-grid" id="previewGrid">
+                                <div class="preview-empty-state">
+                                    <p>Dodaj produkty do kampanii, aby zobaczyć podgląd listingu</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Card Preview -->
+                <div class="preview-content" id="preview-product">
+                    <div class="preview-browser">
+                        <div class="browser-bar">
+                            <div class="browser-dots"><span></span><span></span><span></span></div>
+                            <div class="browser-url">sklep.pl/produkt/<span id="productUrlSlug">wybierz-produkt</span></div>
+                        </div>
+                        <div class="browser-content">
+                            <div id="productDetailView" class="product-detail">
+                                <div class="preview-empty-state">
+                                    <p>Kliknij produkt na listingu aby zobaczyć kartę produktu</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cart Preview -->
+                <div class="preview-content" id="preview-cart">
+                    <div class="preview-browser">
+                        <div class="browser-bar">
+                            <div class="browser-dots"><span></span><span></span><span></span></div>
+                            <div class="browser-url">sklep.pl/koszyk</div>
+                        </div>
+                        <div class="browser-content">
+                            <div class="cart-view" id="cartView">
+                                <h3 class="cart-title">🛒 Koszyk</h3>
+                                <div class="cart-items" id="cartItems">
+                                    <div class="preview-empty-state">
+                                        <p>Dodaj produkty do kampanii aby symulować koszyk</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feed Preview -->
+                <div class="preview-content" id="preview-feed">
+                    <div class="preview-browser">
+                        <div class="browser-bar">
+                            <div class="browser-dots"><span></span><span></span><span></span></div>
+                            <div class="browser-url">Integracje zewnętrzne</div>
+                        </div>
+                        <div class="browser-content">
+                            <div class="feed-view" id="feedView">
+                                <div class="feed-section">
+                                    <h4><span class="feed-icon">📡</span> DataFeedWatch — Feed produktowy</h4>
+                                    <pre class="feed-code" id="feedDataFeedWatch">// Dodaj produkty do kampanii</pre>
+                                </div>
+                                <div class="feed-section">
+                                    <h4><span class="feed-icon">🔗</span> BaseLinker — Allegro / Marketplace</h4>
+                                    <pre class="feed-code" id="feedBaseLinker">// Dodaj produkty do kampanii</pre>
+                                </div>
+                                <div class="feed-section">
+                                    <h4><span class="feed-icon">📧</span> Powiadomienia e-mail</h4>
+                                    <div class="email-preview" id="emailPreview">
+                                        <div class="preview-empty-state">
+                                            <p>Zmień status kampanii aby zobaczyć powiadomienia</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
